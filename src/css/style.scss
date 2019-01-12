@@ -1,0 +1,53 @@
+$font-family-base: Arial, Helvetica, sans-serif;
+$font-size-base: .7rem;
+
+$theme_colors: (
+    primary: #1E4A6D
+);
+
+/* Boostrap 4 Full Bundle */
+@import '~bootstrap/scss/bootstrap';
+
+.invalidate {
+    opacity: 0.2;
+}
+
+.spinner {
+    display: inline-block;
+    opacity: 0;
+    max-width: 0;
+    transition: opacity 0.25s, max-width 0.45s; /* Duration fixed since we animate additional hidden width */
+}
+
+.has-spinner.active {
+    cursor: progress;
+}
+
+.has-spinner.active .spinner {
+    opacity: 1;
+    max-width: 50px; /* More than it will ever come, notice that this affects on animation duration */
+}
+
+.slider {
+    display: none;
+}
+
+.ripple {
+    background-position: center;
+    transition: background .5s;
+    &:hover {
+        background: theme_color(light)
+            radial-gradient(circle, transparent 1%, theme_color(light) 1%)
+            center/15000%;
+    }
+    &:active {
+        background-color: theme_color(primary);
+        background-size: 100%;
+        transition: background 0s;
+    }
+}
+
+body {
+    height: 700px;
+    width: 900px;
+}
