@@ -1,3 +1,3 @@
 ## Example
 
-![Demo](img/e1p-open-pos.gif)
+![Demo](img/e1p-open-pos.png)

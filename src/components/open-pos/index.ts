@@ -7,6 +7,10 @@ import { IStateParams, IRow } from '../../state';
 class ViewModel {
     $busy = ko.observable(false);
     $elapsed: KnockoutObservable<string>;
+    // Graph Parameters
+    margin = { top: 30, right: 100, bottom: 60, left: 30 };
+    width = 900 - this.margin.left - this.margin.right;
+    height = 700 - this.margin.top - this.margin.bottom;
     x: d3.ScaleTime<number, number>;
     yTotal: d3.ScaleLinear<number, number>;
     yCount: d3.ScaleLinear<number, number>;
@@ -98,21 +102,17 @@ class ViewModel {
         });
     }
     draw(data: IRow[]) {
-        // Dimensions
-        const margin = { top: 30, right: 100, bottom: 60, left: 30 };
-        const width = 900 - margin.left - margin.right;
-        const height = 700 - margin.top - margin.bottom;
 
         // Scales
         this.x = d3.scaleTime()
             .domain(d3.extent(data, d => d.date))
-            .range([0, width]);
+            .range([0, this.width]);
         this.yTotal = d3.scaleLinear()
             .domain([0, d3.max(data, d => d.total)])
-            .range([height, 0]);
+            .range([this.height, 0]);
         this.yCount = d3.scaleLinear()
             .domain([0, d3.max(data, d => d.count)])
-            .range([height, 0]);
+            .range([this.height, 0]);
 
         // Define the line
         this.line = d3.line<IRow>()
@@ -121,12 +121,6 @@ class ViewModel {
             .y(d => this.yTotal(d.total))
             .curve(d3.curveStepAfter);
 
-        // Canvas
-        this.svg = d3.select<d3.BaseType, IRow>('#chart')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
-            .append('g')
-            .attr('transform', `translate(${margin.left},${margin.top})`);
         // Add the line
         this.svg.append('path')
             .attr('class', 'line')
@@ -135,18 +129,18 @@ class ViewModel {
         this.svg.selectAll('.dot')
             .data(data)
             .enter().append('circle')
-                .attr('class', 'dot')
-                .attr('r', 3.5)
-                .attr('cx', d => this.x(d.date))
-                .attr('cy', d => this.yCount(d.count));
+            .attr('class', 'dot')
+            .attr('r', 3.5)
+            .attr('cx', d => this.x(d.date))
+            .attr('cy', d => this.yCount(d.count));
         // Add the axis
         this.svg.append('g')
             .attr('class', 'x axis')
-            .attr('transform', `translate(0,${height})`)
+            .attr('transform', `translate(0,${this.height})`)
             .call(d3.axisBottom(this.x));
         this.svg.append('g')
             .attr('class', 'y total axis')
-            .attr('transform', `translate(${width},0)`)
+            .attr('transform', `translate(${this.width},0)`)
             .call(d3.axisRight(this.yTotal));
         this.svg.append('g')
             .attr('class', 'y count axis')
@@ -160,35 +154,41 @@ class ViewModel {
 
         // Apply the change
         const duration = 750;
-        const trans = this.svg.transition();
+        const trans = this.svg
+            .transition()
+            .duration(duration);
         trans.select('.line')
-            .duration(duration)
             .attr('d', this.line(data));
         trans.select('.x.axis')
-            .duration(duration)
             .call(d3.axisBottom(this.x) as any);
         trans.select('.y.total.axis')
-            .duration(duration)
             .call(d3.axisRight(this.yTotal) as any);
 
         // Scatter plot
         trans.select('.y.count.axis')
-            .duration(duration)
             .call(d3.axisLeft(this.yCount) as any);
-        // Remove old plot
-        this.svg.selectAll('.dot')
-            .remove();
-        // Add new one
-        this.svg.selectAll('.dot')
-            .data(data)
-            .enter().append('circle')
-                .attr('class', 'dot')
-                .attr('r', 3.5)
-                .attr('cx', d => this.x(d.date))
-                .attr('cy', d => this.yCount(d.count));
+        const dots = this.svg
+            .selectAll('.dot')
+            .data(data);
+        dots.exit().remove();
+        dots.transition().duration(duration)
+            .attr('cx', d => this.x(d.date))
+            .attr('cy', d => this.yCount(d.count));
+        dots.enter()
+            .append('circle')
+            .attr('class', 'dot')
+            .attr('r', 3.5)
+            .attr('cx', d => this.x(d.date))
+            .attr('cy', d => this.yCount(d.count));
     }
     constructor(public params: IStateParams) {
         this.$elapsed = ko.observable(this.formatTime(Date.now() - params.state.timeStamp));
+        // Canvas
+        this.svg = d3.select<d3.BaseType, IRow>('#chart')
+            .attr('width', this.width + this.margin.left + this.margin.right)
+            .attr('height', this.height + this.margin.top + this.margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
         setInterval(() => this.$elapsed(this.formatTime(Date.now() - params.state.timeStamp)), 60000);
         if (params.state.rows) {
             this.draw(params.state.rows);
